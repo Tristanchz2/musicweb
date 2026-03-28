@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Musicbox</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 16px;
+      line-height: 1.5;
+      color: #222;
+    }
+
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0;
+    }
+
+    .status-wrap {
+      position: relative;
+    }
+
+    .status-button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 999px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #c0392b;
+    }
+
+    .status-button.verified .status-dot {
+      background: #2e8b57;
+    }
+
+    .status-panel {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 260px;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      display: none;
+      z-index: 10;
+    }
+
+    .status-panel.open {
+      display: block;
+    }
+
+    .status-panel p {
+      margin-top: 0;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .status-panel input {
+      width: 100%;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+
+    .panel-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .player {
+      margin-bottom: 32px;
+      padding: 16px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+
+    .now-playing {
+      margin-bottom: 12px;
+      font-weight: bold;
+    }
+
+    .helper {
+      margin-top: 10px;
+      color: #666;
+      font-size: 14px;
+      min-height: 20px;
+    }
+
+    .upload-box {
+      margin-bottom: 24px;
+      padding: 16px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+
+    .upload-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .upload-row input {
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+
+    .upload-row input[type="text"] {
+      flex: 1 1 180px;
+    }
+
+    .track-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .track-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+
+    .track-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .track-title {
+      font-weight: bold;
+    }
+
+    .track-subtitle,
+    .track-detail {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .track-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    button {
+      padding: 8px 14px;
+      cursor: pointer;
+    }
+
+    .empty {
+      color: #666;
+      padding: 16px 0;
+    }
+
+    @media (max-width: 640px) {
+      .header,
+      .track-item {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .status-wrap {
+        align-self: flex-end;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>Musicbox</h1>
+      <div style="color:#666; margin-top: 6px;">Everyone can browse tracks. Verified users can play and download.</div>
+    </div>
+
+    <div class="status-wrap">
+      <button id="status-button" class="status-button" type="button">
+        <span class="status-dot"></span>
+        <span id="status-value">unverified</span>
+      </button>
+
+      <div id="status-panel" class="status-panel">
+        <p id="status-text">Enter the shared password to switch to verified mode.</p>
+        <div id="login-form">
+          <input type="password" id="password" placeholder="Enter password" />
+          <div class="panel-actions">
+            <button id="login-button" type="button">Login</button>
+          </div>
+        </div>
+        <div id="logout-form" style="display:none;">
+          <div class="panel-actions">
+            <button id="logout-button" type="button">Logout</button>
+          </div>
+        </div>
+        <div id="login-error" style="color:red; margin-top:8px; min-height:20px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="player">
+    <div id="now-playing" class="now-playing">Now playing: nothing</div>
+    <audio id="audio-player" controls style="width:100%;"></audio>
+    <div id="player-message" class="helper"></div>
+  </div>
+
+  <div class="upload-box">
+    <div style="font-weight: bold; margin-bottom: 8px;">Upload</div>
+    <div class="upload-row">
+      <input type="file" id="upload-file" accept=".mp3,.wav,.flac,.m4a,.aac,.ogg" />
+      <input type="text" id="upload-title" placeholder="Title" />
+      <input type="text" id="upload-artist" placeholder="Artist" />
+      <input type="text" id="upload-album" placeholder="Album" />
+      <button id="upload-button" type="button">Upload</button>
+    </div>
+    <div id="upload-message" class="helper"></div>
+  </div>
+
+  <div id="track-list" class="track-list"></div>
+
+  <script>
+    const audioPlayer = document.getElementById("audio-player");
+    const nowPlaying = document.getElementById("now-playing");
+    const trackList = document.getElementById("track-list");
+    const statusButton = document.getElementById("status-button");
+    const statusPanel = document.getElementById("status-panel");
+    const statusValue = document.getElementById("status-value");
+    const statusText = document.getElementById("status-text");
+    const loginForm = document.getElementById("login-form");
+    const logoutForm = document.getElementById("logout-form");
+    const loginError = document.getElementById("login-error");
+    const playerMessage = document.getElementById("player-message");
+    const passwordInput = document.getElementById("password");
+    const uploadFileInput = document.getElementById("upload-file");
+    const uploadTitleInput = document.getElementById("upload-title");
+    const uploadArtistInput = document.getElementById("upload-artist");
+    const uploadAlbumInput = document.getElementById("upload-album");
+    const uploadButton = document.getElementById("upload-button");
+    const uploadMessage = document.getElementById("upload-message");
+
+    let authStatus = "unverified";
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function setStatus(status) {
+      authStatus = status === "verified" ? "verified" : "unverified";
+      statusValue.textContent = authStatus;
+      statusButton.classList.toggle("verified", authStatus === "verified");
+      loginForm.style.display = authStatus === "verified" ? "none" : "block";
+      logoutForm.style.display = authStatus === "verified" ? "block" : "none";
+
+      if (authStatus === "verified") {
+        statusText.textContent = "Verified mode is active.";
+        uploadMessage.textContent = "";
+      } else {
+        statusText.textContent = "Enter the shared password to switch to verified mode.";
+      }
+    }
+
+    async function refreshAuthStatus() {
+      const res = await fetch("/auth/status", {
+        credentials: "same-origin"
+      });
+      const data = await res.json();
+      setStatus(data.status);
+    }
+
+    async function login() {
+      loginError.textContent = "";
+
+      const form = new FormData();
+      form.append("password", passwordInput.value);
+
+      const res = await fetch("/auth/login", {
+        method: "POST",
+        body: form,
+        credentials: "same-origin"
+      });
+
+      if (res.ok) {
+        passwordInput.value = "";
+        await refreshAuthStatus();
+        statusPanel.classList.remove("open");
+      } else {
+        loginError.textContent = "Wrong password";
+      }
+    }
+
+    async function logout() {
+      await fetch("/auth/logout", {
+        method: "POST",
+        credentials: "same-origin"
+      });
+      audioPlayer.pause();
+      audioPlayer.removeAttribute("src");
+      audioPlayer.load();
+      nowPlaying.textContent = "Now playing: nothing";
+      playerMessage.textContent = "";
+      loginError.textContent = "";
+      await refreshAuthStatus();
+    }
+
+    async function loadTracks() {
+      const res = await fetch("/tracks");
+      if (!res.ok) {
+        trackList.innerHTML = '<div class="empty">Failed to load tracks</div>';
+        return;
+      }
+
+      const tracks = await res.json();
+      trackList.innerHTML = "";
+
+      if (!tracks.length) {
+        trackList.innerHTML = '<div class="empty">No tracks yet</div>';
+        return;
+      }
+
+      for (const t of tracks) {
+        const div = document.createElement("div");
+        div.className = "track-item";
+        const meta = document.createElement("div");
+        meta.className = "track-meta";
+
+        const title = document.createElement("div");
+        title.className = "track-title";
+        title.textContent = t.title;
+
+        const subtitle = document.createElement("div");
+        subtitle.className = "track-subtitle";
+        subtitle.textContent = `${t.artist || "Unknown artist"} - ${t.album || "No album"}`;
+
+        const detail = document.createElement("div");
+        detail.className = "track-detail";
+        detail.textContent = (t.format || "unknown").toUpperCase();
+
+        meta.appendChild(title);
+        meta.appendChild(subtitle);
+        meta.appendChild(detail);
+
+        const actions = document.createElement("div");
+        actions.className = "track-actions";
+
+        const playButton = document.createElement("button");
+        playButton.type = "button";
+        playButton.textContent = "Play";
+        playButton.addEventListener("click", () => playTrack(t.id, t.title));
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.textContent = "Delete";
+        deleteButton.addEventListener("click", () => deleteTrack(t.id, t.title));
+
+        actions.appendChild(playButton);
+        actions.appendChild(deleteButton);
+        div.appendChild(meta);
+        div.appendChild(actions);
+        trackList.appendChild(div);
+      }
+    }
+
+    function promptVerification(message) {
+      playerMessage.textContent = message;
+      statusPanel.classList.add("open");
+    }
+
+    async function playTrack(id, title) {
+      if (authStatus !== "verified") {
+        promptVerification("Login first to play tracks.");
+        return;
+      }
+
+      playerMessage.textContent = "";
+      audioPlayer.src = `/tracks/${id}/stream`;
+      nowPlaying.textContent = "Now playing: " + title;
+
+      try {
+        await audioPlayer.play();
+      } catch (error) {
+        playerMessage.textContent = "Playback could not start.";
+      }
+    }
+
+    async function deleteTrack(id, title) {
+      if (authStatus !== "verified") {
+        promptVerification("Login first to delete tracks.");
+        return;
+      }
+
+      const confirmed = window.confirm(`Delete "${title}"?`);
+      if (!confirmed) {
+        return;
+      }
+
+      const res = await fetch(`/tracks/${id}`, {
+        method: "DELETE",
+        credentials: "same-origin"
+      });
+
+      if (!res.ok) {
+        playerMessage.textContent = "Delete failed.";
+        return;
+      }
+
+      if (audioPlayer.src.includes(`/tracks/${id}/stream`)) {
+        audioPlayer.pause();
+        audioPlayer.removeAttribute("src");
+        audioPlayer.load();
+        nowPlaying.textContent = "Now playing: nothing";
+      }
+
+      playerMessage.textContent = "Track deleted.";
+      await loadTracks();
+    }
+
+    async function uploadTrack() {
+      if (authStatus !== "verified") {
+        promptVerification("Login first to upload tracks.");
+        return;
+      }
+
+      const file = uploadFileInput.files[0];
+      const title = uploadTitleInput.value.trim();
+
+      if (!file) {
+        uploadMessage.textContent = "Choose a file first.";
+        return;
+      }
+
+      if (!title) {
+        uploadMessage.textContent = "Title is required.";
+        return;
+      }
+
+      uploadMessage.textContent = "Uploading...";
+
+      const form = new FormData();
+      form.append("file", file);
+      form.append("title", title);
+      form.append("artist", uploadArtistInput.value.trim());
+      form.append("album", uploadAlbumInput.value.trim());
+
+      const res = await fetch("/tracks/upload", {
+        method: "POST",
+        body: form,
+        credentials: "same-origin"
+      });
+
+      if (!res.ok) {
+        uploadMessage.textContent = "Upload failed.";
+        return;
+      }
+
+      uploadFileInput.value = "";
+      uploadTitleInput.value = "";
+      uploadArtistInput.value = "";
+      uploadAlbumInput.value = "";
+      uploadMessage.textContent = "Upload complete.";
+      await loadTracks();
+    }
+
+    statusButton.addEventListener("click", () => {
+      statusPanel.classList.toggle("open");
+    });
+
+    document.getElementById("login-button").addEventListener("click", login);
+    document.getElementById("logout-button").addEventListener("click", logout);
+    uploadButton.addEventListener("click", uploadTrack);
+
+    passwordInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        login();
+      }
+    });
+
+    document.addEventListener("click", (event) => {
+      if (!statusPanel.contains(event.target) && !statusButton.contains(event.target)) {
+        statusPanel.classList.remove("open");
+      }
+    });
+
+    refreshAuthStatus();
+    loadTracks();
+  </script>
+</body>
+</html>

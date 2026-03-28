@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:16
+    container_name: musicbox-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: musicbox-backend
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+      MUSIC_STORAGE_PATH: /data/music
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/music:/data/music
+
+volumes:
+  postgres_data:
