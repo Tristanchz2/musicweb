@@ -2,6 +2,7 @@ services:
   db:
     image: postgres:16
     container_name: musicbox-db
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -12,8 +13,9 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   backend:
-    build: ./backend
+    image: ghcr.io/Tristanchz2/musicweb-backend:latest
     container_name: musicbox-backend
+    restart: unless-stopped
     depends_on:
       - db
     env_file:
@@ -24,7 +26,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./data/music:/data/music
+      - music_data:/data/music
 
 volumes:
   postgres_data:
+  music_data:
